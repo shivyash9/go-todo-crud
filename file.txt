@@ -1,0 +1,26 @@
+/go-dynamo-crud
+│
+├── cmd/                # Entry point for the application
+│   └── main.go         # Main application entry point, responsible for initializing routes and starting the server
+│
+├── config/             # Configuration files and environment variables
+│   └── config.go       # Configuration logic (e.g., loading environment variables, database connection settings)
+│
+├── handlers/           # HTTP handler functions that deal with incoming requests
+│   └── task.go         # Handlers for CRUD operations (create, read, update, delete)
+│
+├── models/             # Data models representing entities in the app (e.g., Task struct)
+│   └── task.go         # Task struct and methods for interacting with DynamoDB
+│
+├── repository/         # Logic for interacting with DynamoDB (data access layer)
+│   └── task_repo.go    # Functions for interacting with DynamoDB (e.g., create task, get task)
+│
+├── routes/             # Route definitions and routing logic
+│   └── routes.go       # Register HTTP routes with corresponding handlers
+│
+├── utils/              # Utility functions or common helpers
+│   └── response.go     # Helper functions for creating standard responses (e.g., JSON responses)
+│
+├── go.mod              # Go module file (for dependency management)
+├── go.sum              # Go sum file (for security checks of dependencies)
+└── README.md           # Project documentation
