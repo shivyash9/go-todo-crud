@@ -21,7 +21,7 @@ type Task struct {
 var tasks []Task
 var nextID int = 1
 
-// Handler to create a new task
+// Handler to create a new task (POST /tasks)
 func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -29,47 +29,41 @@ func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newTask Task
-
-	// Decode JSON request body into Task
 	err := json.NewDecoder(r.Body).Decode(&newTask)
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	// Set unique ID and mark task as not completed
+	// Set unique ID and default as not completed
 	newTask.ID = nextID
 	newTask.Completed = false
 	nextID++
 
-	// Add task to in-memory slice
 	tasks = append(tasks, newTask)
 
-	// Return created task as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(newTask)
 }
 
-// Handler to list all tasks
+// Handler to list all tasks (GET /tasks)
 func getTasksHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Return tasks as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tasks)
 }
 
-// Handler to get a task by ID
+// Handler to get a task by ID (GET /tasks/{id})
 func getTaskByIDHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Extract task ID from URL path
 	idStr := strings.TrimPrefix(r.URL.Path, "/tasks/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
@@ -77,28 +71,24 @@ func getTaskByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the task by ID
 	for _, task := range tasks {
 		if task.ID == id {
-			// Return task as JSON
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(task)
 			return
 		}
 	}
 
-	// Task not found
 	http.Error(w, "Task not found", http.StatusNotFound)
 }
 
-// Handler to delete a task by ID
+// Handler to delete a task by ID (DELETE /tasks/{id})
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Extract task ID from URL path
 	idStr := strings.TrimPrefix(r.URL.Path, "/tasks/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 1 {
@@ -106,26 +96,29 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the task by ID and remove it
 	for index, task := range tasks {
 		if task.ID == id {
-			// Remove task from the slice
 			tasks = append(tasks[:index], tasks[index+1:]...)
-
-			// Return success message
-			w.WriteHeader(http.StatusNoContent) // No Content response for successful deletion
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 	}
 
-	// Task not found
 	http.Error(w, "Task not found", http.StatusNotFound)
 }
 
-// taskRouter handles all requests to /tasks and routes them to the appropriate handler
-func taskRouter(w http.ResponseWriter, r *http.Request) {
-	// Handle /tasks endpoint (with no ID)
-	if r.URL.Path == "/tasks" {
+func main() {
+	// Welcome route
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprintln(w, "Welcome to the Go To-Do CRUD API!")
+	})
+
+	// Handle /tasks and /tasks/{id} routes
+	http.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			getTasksHandler(w, r)
@@ -134,11 +127,9 @@ func taskRouter(w http.ResponseWriter, r *http.Request) {
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-		return
-	}
+	})
 
-	// Handle /tasks/{id} endpoints
-	if strings.HasPrefix(r.URL.Path, "/tasks/") {
+	http.HandleFunc("/tasks/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			getTaskByIDHandler(w, r)
@@ -147,27 +138,7 @@ func taskRouter(w http.ResponseWriter, r *http.Request) {
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-		return
-	}
-
-	// If we got here, the path is not recognized
-	http.NotFound(w, r)
-}
-
-func main() {
-	// Welcome route
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Only respond to exact root path
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		fmt.Fprintln(w, "Welcome to the Go To-Do CRUD API!")
 	})
-
-	// Register single router for all /tasks routes
-	http.HandleFunc("/tasks", taskRouter)
-	http.HandleFunc("/tasks/", taskRouter)
 
 	// Start server
 	fmt.Println("Server is running on http://localhost:8080")
